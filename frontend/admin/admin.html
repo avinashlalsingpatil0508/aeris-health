@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AERIS Control Center — Admin Portal</title>
+<link rel="stylesheet" href="css/admin.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<script src="js/admin.js"></script>
+</head>
+<body>
+
+<canvas id="a-particles"></canvas>
+<div id="a-grid"></div>
+<div class="a-loading hidden" id="a-loading">
+  <div class="a-spinner"></div>
+  <div class="a-loading-text">LOADING...</div>
+</div>
+<div class="a-toasts" id="a-toasts"></div>
+<div class="sidebar-overlay" id="a-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:99" onclick="document.getElementById('a-sidebar').classList.remove('open');this.style.display='none'"></div>
+
+<!-- ═══════════════════ ADMIN LOGIN SCREEN ═══════════════════ -->
+<div id="admin-login-screen">
+  <div class="login-wrap">
+
+    <!-- Floating decorative orbs -->
+    <div style="position:absolute;top:-120px;left:-80px;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(0,255,136,0.06),transparent 70%);pointer-events:none"></div>
+    <div style="position:absolute;bottom:-100px;right:-60px;width:250px;height:250px;border-radius:50%;background:radial-gradient(circle,rgba(0,212,255,0.05),transparent 70%);pointer-events:none"></div>
+
+    <div class="login-card">
+      <div class="login-badge">
+        <div class="login-dot"></div>
+        SECURE ADMIN ACCESS
+      </div>
+
+      <div class="login-logo">
+        <div class="login-logo-icon"><i class="fa-solid fa-leaf"></i></div>
+        <div>
+          <div class="login-logo-text">AERIS<span>Control</span></div>
+          <div style="font-size:10px;color:var(--a-muted);letter-spacing:2px;font-family:var(--a-mono)">GOVERNMENT MONITORING PORTAL</div>
+        </div>
+      </div>
+      <div class="login-subtitle" style="margin-top:6px">Authorised access only. All sessions are monitored and logged.</div>
+
+      <div id="login-err" class="login-error"></div>
+
+      <form id="admin-login-form" novalidate>
+        <div class="a-form-group">
+          <label class="a-form-label">Admin Email</label>
+          <div class="a-input-wrap">
+            <i class="a-input-icon fa-solid fa-shield-halved"></i>
+            <input name="al_email" type="email" class="a-form-control" placeholder="admin@aeris.gov" required/>
+          </div>
+        </div>
+        <div class="a-form-group" style="margin-bottom:24px">
+          <label class="a-form-label">Access Password</label>
+          <div class="a-input-wrap">
+            <i class="a-input-icon fa-solid fa-key"></i>
+            <input name="al_pass" type="password" class="a-form-control" placeholder="••••••••" required/>
+          </div>
+        </div>
+        <button type="submit" class="a-btn a-btn-primary a-btn-full a-btn-lg">
+          <i class="fa-solid fa-shield-halved"></i> Access Control Center
+        </button>
+      </form>
+
+      <div style="margin-top:24px;padding:12px 14px;background:rgba(0,255,136,0.04);border:1px solid rgba(0,255,136,0.1);border-radius:8px">
+        <div style="font-size:10px;color:var(--a-muted);font-family:var(--a-mono);letter-spacing:1px;margin-bottom:6px">DEMO CREDENTIALS</div>
+        <div style="font-size:12px;color:var(--a-green)">Email: admin@aeris.gov</div>
+        <div style="font-size:12px;color:var(--a-green)">Password: admin2025</div>
+      </div>
+
+      <div style="text-align:center;margin-top:20px;font-size:11px;color:var(--a-muted)">
+        <a href="../index.html" style="color:var(--a-muted);text-decoration:none">
+          <i class="fa-solid fa-arrow-left"></i> Back to User Portal
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ ADMIN APP SHELL ═══════════════════════ -->
+<div id="admin-app" style="display:none;min-height:100vh">
+
+  <!-- SIDEBAR -->
+  <aside class="a-sidebar" id="a-sidebar">
+    <div class="a-sb-logo">
+      <div class="a-sb-logo-icon"><i class="fa-solid fa-leaf"></i></div>
+      <div>
+        <div class="a-sb-logo-text">AERIS<span>Control</span></div>
+        <div style="font-size:9px;color:var(--a-muted);letter-spacing:1.5px;font-family:var(--a-mono)">ADMIN PORTAL</div>
+      </div>
+      <div class="a-sb-badge">ADMIN</div>
+    </div>
+
+    <nav class="a-sb-nav">
+      <div class="a-sb-section">Command Center</div>
+      <div class="a-nav-item active" data-page="overview" onclick="ARouter.go('overview')">
+        <i class="fa-solid fa-display"></i> System Overview
+      </div>
+
+      <div class="a-sb-section" style="margin-top:8px">Monitoring</div>
+      <div class="a-nav-item" data-page="pollution" onclick="ARouter.go('pollution')">
+        <i class="fa-solid fa-smog"></i> Pollution Monitor
+      </div>
+      <div class="a-nav-item" data-page="city" onclick="ARouter.go('city')">
+        <i class="fa-solid fa-city"></i> City AQI Monitor
+      </div>
+      <div class="a-nav-item" data-page="trends" onclick="ARouter.go('trends')">
+        <i class="fa-solid fa-chart-line"></i> AQI Trends
+      </div>
+      <div class="a-nav-item" data-page="zones" onclick="ARouter.go('zones')">
+        <i class="fa-solid fa-map-location-dot"></i> High Risk Zones
+      </div>
+
+      <div class="a-sb-section" style="margin-top:8px">Alerts &amp; Reports</div>
+      <div class="a-nav-item" data-page="alerts" onclick="ARouter.go('alerts')">
+        <i class="fa-solid fa-siren"></i> Emergency Alerts
+        <span class="a-nav-badge" id="sb-alert-count">!</span>
+      </div>
+      <div class="a-nav-item" data-page="reports" onclick="ARouter.go('reports')">
+        <i class="fa-solid fa-file-waveform"></i> Report Management
+      </div>
+
+      <div class="a-sb-section" style="margin-top:8px">Management</div>
+      <div class="a-nav-item" data-page="users" onclick="ARouter.go('users')">
+        <i class="fa-solid fa-users"></i> User Management
+      </div>
+      <div class="a-nav-item" data-page="recs" onclick="ARouter.go('recs')">
+        <i class="fa-solid fa-list-check"></i> Recommendations
+      </div>
+    </nav>
+
+    <div class="a-sb-footer">
+      <div class="a-admin-chip">
+        <div class="a-admin-avatar">A</div>
+        <div style="min-width:0;flex:1">
+          <div class="a-admin-name" id="a-admin-name-chip">System Admin</div>
+          <div class="a-admin-role">Super Admin</div>
+        </div>
+        <button class="a-logout-btn" onclick="adminLogout()" title="Sign out">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- TOPBAR -->
+  <header class="a-topbar">
+    <button class="a-hamburger" id="a-hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="a-topbar-title" id="a-topbar-title">System Overview</div>
+    <div class="a-topbar-live">
+      <div class="a-live-dot"></div>
+      LIVE &nbsp;·&nbsp; <span id="a-clock" class="a-mono" style="font-size:12px">--:--:--</span>
+    </div>
+    <div style="flex:1"></div>
+    <div class="a-topbar-action" title="Refresh" onclick="location.reload()"><i class="fa-solid fa-rotate"></i></div>
+    <div class="a-topbar-action" title="User Portal" onclick="window.open('../index.html','_blank')"><i class="fa-solid fa-external-link"></i></div>
+    <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--a-green),var(--a-cyan));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--a-bg0)">A</div>
+  </header>
+
+  <!-- MAIN AREA -->
+  <main class="a-main">
+
+    <!-- ══ PAGE: SYSTEM OVERVIEW ══ -->
+    <div class="a-page active" id="ap-overview">
+      <div class="a-content">
+        <div class="a-page-header">
+          <div>
+            <div class="a-page-title">System Overview</div>
+            <div class="a-page-sub">Real-time pollution monitoring and health risk intelligence dashboard</div>
+          </div>
+          <button class="a-btn a-btn-outline a-btn-sm" onclick="initOverview()"><i class="fa-solid fa-rotate"></i> Refresh</button>
+        </div>
+
+        <!-- Stats -->
+        <div class="a-stat-grid">
+          <div class="a-stat green" style="--glow-color:var(--a-green)">
+            <div class="a-stat-icon a-si-green"><i class="fa-solid fa-users"></i></div>
+            <div class="a-stat-val a-green" id="ov-users">0</div>
+            <div class="a-stat-lbl">Total Users</div>
+            <div class="a-sparkline" id="spark-low" style="margin-top:12px">
+              <div class="a-spark-bar" style="height:10px"></div>
+              <div class="a-spark-bar" style="height:10px"></div>
+              <div class="a-spark-bar" style="height:10px"></div>
+              <div class="a-spark-bar" style="height:10px"></div>
+              <div class="a-spark-bar" style="height:10px"></div>
+              <div class="a-spark-bar" style="height:10px"></div>
+              <div class="a-spark-bar" style="height:10px"></div>
+            </div>
+          </div>
+          <div class="a-stat cyan" style="--glow-color:var(--a-cyan)">
+            <div class="a-stat-icon a-si-cyan"><i class="fa-solid fa-file-waveform"></i></div>
+            <div class="a-stat-val a-cyan" id="ov-reports">0</div>
+            <div class="a-stat-lbl">Total Reports</div>
+            <div class="a-sparkline" id="spark-moderate" style="margin-top:12px">
+              <div class="a-spark-bar" style="height:10px"></div>
+              <div class="a-spark-bar" style="height:10px"></div>
+              <div class="a-spark-bar" style="height:10px"></div>
+              <div class="a-spark-bar" style="height:10px"></div>
+              <div class="a-spark-bar" style="height:10px"></div>
+              <div class="a-spark-bar" style="height:10px"></div>
+              <div class="a-spark-bar" style="height:10px"></div>
+            </div>
+          </div>
+          <div class="a-stat rose" style="--glow-color:var(--a-rose)">
+            <div class="a-stat-icon a-si-rose"><i class="fa-solid fa-skull-crossbones"></i></div>
+            <div class="a-stat-val a-rose" id="ov-critical">0</div>
+            <div class="a-stat-lbl">Critical Cases</div>
+            <div class="a-sparkline" id="spark-high" style="margin-top:12px">
+              <div class="a-spark-bar" style="height:10px"></div>
+              <div class="a-spark-bar" style="height:10px"></div>
+              <div class="a-spark-bar" style="height:10px"></div>
+              <div class="a-spark-bar" style="height:10px"></div>
+              <div class="a-spark-bar" style="height:10px"></div>
+              <div class="a-spark-bar" style="height:10px"></div>
+              <div class="a-spark-bar" style="height:10px"></div>
+            </div>
+          </div>
+          <div class="a-stat amber" style="--glow-color:var(--a-amber)">
+            <div class="a-stat-icon a-si-amber"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <div class="a-stat-val a-amber" id="ov-highrisk">0</div>
+            <div class="a-stat-lbl">High + Critical</div>
+            <div class="a-sparkline" id="spark-critical" style="margin-top:12px">
+              <div class="a-spark-bar" style="height:10px"></div>
+              <div class="a-spark-bar" style="height:10px"></div>
+              <div class="a-spark-bar" style="height:10px"></div>
+              <div class="a-spark-bar" style="height:10px"></div>
+              <div class="a-spark-bar" style="height:10px"></div>
+              <div class="a-spark-bar" style="height:10px"></div>
+              <div class="a-spark-bar" style="height:10px"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="a-grid-4 mb-18">
+          <!-- Risk pie -->
+          <div class="a-card">
+            <div class="a-card-header">
+              <i class="fa-solid fa-chart-pie" style="color:var(--a-green)"></i>
+              <span class="a-card-title">Risk Distribution</span>
+            </div>
+            <div class="a-card-body" style="display:flex;justify-content:center">
+              <div class="chart-wrap" style="width:220px;height:220px">
+                <canvas id="ov-pie"></canvas>
+              </div>
+            </div>
+          </div>
+          <!-- High risk alerts -->
+          <div class="a-card">
+            <div class="a-card-header">
+              <i class="fa-solid fa-siren" style="color:var(--a-rose)"></i>
+              <span class="a-card-title">High Risk Alerts</span>
+              <div class="a-card-header-actions">
+                <button class="a-btn a-btn-sm a-btn-outline" onclick="ARouter.go('alerts')">View All</button>
+              </div>
+            </div>
+            <div class="a-card-body" id="ov-alerts" style="max-height:260px;overflow-y:auto">
+              <div class="a-empty" style="padding:24px"><i class="fa-solid fa-spinner fa-spin"></i></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="a-grid-2">
+          <!-- System status -->
+          <div class="a-card">
+            <div class="a-card-header">
+              <i class="fa-solid fa-server" style="color:var(--a-cyan)"></i>
+              <span class="a-card-title">System Status</span>
+              <div class="a-card-header-actions">
+                <span class="a-status-dot online" style="font-size:10px">ALL SYSTEMS GO</span>
+              </div>
+            </div>
+            <div class="a-card-body" id="ov-sys-status">
+              <div class="a-empty" style="padding:20px"><i class="fa-solid fa-spinner fa-spin"></i></div>
+            </div>
+          </div>
+          <!-- Recent activity -->
+          <div class="a-card">
+            <div class="a-card-header">
+              <i class="fa-solid fa-clock-rotate-left" style="color:var(--a-amber)"></i>
+              <span class="a-card-title">Recent Activity</span>
+            </div>
+            <div class="a-card-body" id="ov-activity" style="max-height:260px;overflow-y:auto">
+              <div class="a-empty" style="padding:20px"><i class="fa-solid fa-spinner fa-spin"></i></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: USER MANAGEMENT ══ -->
+    <div class="a-page" id="ap-users">
+      <div class="a-content">
+        <div class="a-page-header">
+          <div><div class="a-page-title">User Management</div><div class="a-page-sub">All registered users and their health risk profiles</div></div>
+          <button class="a-btn a-btn-outline a-btn-sm" onclick="initUsers()"><i class="fa-solid fa-rotate"></i> Refresh</button>
+        </div>
+        <div class="a-stat-grid mb-18">
+          <div class="a-stat green"><div class="a-stat-icon a-si-green"><i class="fa-solid fa-users"></i></div><div class="a-stat-val a-green" id="um-total">0</div><div class="a-stat-lbl">Total Users</div></div>
+          <div class="a-stat rose"><div class="a-stat-icon a-si-rose"><i class="fa-solid fa-triangle-exclamation"></i></div><div class="a-stat-val a-rose" id="um-highrisk">0</div><div class="a-stat-lbl">At-Risk Users</div></div>
+          <div class="a-stat amber"><div class="a-stat-icon a-si-amber"><i class="fa-solid fa-lungs"></i></div><div class="a-stat-val a-amber" id="um-asthma">0</div><div class="a-stat-lbl">Asthma Patients</div></div>
+          <div class="a-stat cyan"><div class="a-stat-icon a-si-cyan"><i class="fa-solid fa-lungs-virus"></i></div><div class="a-stat-val a-cyan" id="um-copd">0</div><div class="a-stat-lbl">COPD Patients</div></div>
+        </div>
+        <div class="a-card">
+          <div class="a-card-header">
+            <i class="fa-solid fa-table" style="color:var(--a-cyan)"></i>
+            <span class="a-card-title">Registered Users</span>
+            <div class="a-card-header-actions">
+              <div class="a-search-wrap">
+                <i class="a-search-icon fa-solid fa-magnifying-glass"></i>
+                <input class="a-search-input" placeholder="Search users..." oninput="filterUsers(this.value)"/>
+              </div>
+            </div>
+          </div>
+          <div class="a-table-wrap">
+            <table class="a-table">
+              <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Age / Gender</th><th>Condition</th><th>Status</th></tr></thead>
+              <tbody id="users-tbody"><tr><td colspan="6" style="text-align:center;padding:28px;color:var(--a-muted)"><i class="fa-solid fa-spinner fa-spin"></i></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: POLLUTION MONITORING ══ -->
+    <div class="a-page" id="ap-pollution">
+      <div class="a-content">
+        <div class="a-page-header">
+          <div><div class="a-page-title">Pollution Monitoring</div><div class="a-page-sub">System-wide pollution data with aggregated pollutant analysis</div></div>
+          <button class="a-btn a-btn-outline a-btn-sm" onclick="initPollution()"><i class="fa-solid fa-rotate"></i> Refresh</button>
+        </div>
+        <div class="a-stat-grid mb-18">
+          <div class="a-stat cyan"><div class="a-stat-icon a-si-cyan"><i class="fa-solid fa-file-waveform"></i></div><div class="a-stat-val a-cyan" id="pm-total">0</div><div class="a-stat-lbl">Total Records</div></div>
+          <div class="a-stat rose"><div class="a-stat-icon a-si-rose"><i class="fa-solid fa-skull-crossbones"></i></div><div class="a-stat-val a-rose" id="pm-critical">0</div><div class="a-stat-lbl">Critical Reports</div></div>
+          <div class="a-stat amber"><div class="a-stat-icon a-si-amber"><i class="fa-solid fa-wind"></i></div><div class="a-stat-val a-amber" id="pm-avg-aqi">—</div><div class="a-stat-lbl">Average AQI</div></div>
+          <div class="a-stat green"><div class="a-stat-icon a-si-green"><i class="fa-solid fa-arrow-up"></i></div><div class="a-stat-val a-green" id="pm-max-aqi">—</div><div class="a-stat-lbl">Highest AQI</div></div>
+        </div>
+        <div class="a-grid-2 mb-18">
+          <div class="a-card">
+            <div class="a-card-header"><i class="fa-solid fa-bars-progress" style="color:var(--a-amber)"></i><span class="a-card-title">Average Pollutant Levels</span></div>
+            <div class="a-card-body" id="pm-avg-bars"><div class="a-empty" style="padding:20px"><i class="fa-solid fa-spinner fa-spin"></i></div></div>
+          </div>
+          <div class="a-card">
+            <div class="a-card-header"><i class="fa-solid fa-chart-bar" style="color:var(--a-cyan)"></i><span class="a-card-title">Report Distribution by Risk Level</span></div>
+            <div class="a-card-body"><div class="chart-wrap" style="height:190px"><canvas id="pm-dist-chart"></canvas></div></div>
+          </div>
+        </div>
+        <div class="a-card">
+          <div class="a-card-header"><i class="fa-solid fa-table" style="color:var(--a-green)"></i><span class="a-card-title">All Pollution Records</span></div>
+          <div class="a-table-wrap">
+            <table class="a-table">
+              <thead><tr><th>ID</th><th>Location</th><th>AQI</th><th>Risk Level</th><th>Risk %</th><th>User</th><th>Organs Affected</th></tr></thead>
+              <tbody id="pm-tbody"><tr><td colspan="7" style="text-align:center;padding:28px;color:var(--a-muted)"><i class="fa-solid fa-spinner fa-spin"></i></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: CITY AQI MONITOR ══ -->
+    <div class="a-page" id="ap-city">
+      <div class="a-content">
+        <div class="a-page-header">
+          <div><div class="a-page-title">City AQI Monitor</div><div class="a-page-sub">Aggregate pollution analysis by city or location</div></div>
+        </div>
+        <div class="a-card mb-18">
+          <div class="a-card-body">
+            <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+              <div style="flex:1;min-width:200px">
+                <label class="a-form-label">Search City / Location</label>
+                <div class="a-input-wrap">
+                  <i class="a-input-icon fa-solid fa-magnifying-glass"></i>
+                  <input id="admin-city-input" class="a-form-control" placeholder="e.g. Pune, Mumbai, Chinchwad" onkeydown="if(event.key==='Enter')adminCitySearch()"/>
+                </div>
+              </div>
+              <button class="a-btn a-btn-primary" style="padding:12px 26px" onclick="adminCitySearch()">
+                <i class="fa-solid fa-satellite-dish"></i> Analyse City
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="city-result" class="hidden">
+          <div class="a-stat-grid mb-18">
+            <div class="a-stat green"><div class="a-stat-icon a-si-green"><i class="fa-solid fa-city"></i></div><div class="a-stat-val a-green" id="ac-city" style="font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</div><div class="a-stat-lbl">City</div></div>
+            <div class="a-stat cyan"><div class="a-stat-icon a-si-cyan"><i class="fa-solid fa-wind"></i></div><div class="a-stat-val a-cyan" id="ac-avg-aqi">—</div><div class="a-stat-lbl">Average AQI</div></div>
+            <div class="a-stat amber"><div class="a-stat-icon a-si-amber"><i class="fa-solid fa-file-waveform"></i></div><div class="a-stat-val a-amber" id="ac-records">—</div><div class="a-stat-lbl">Records Found</div></div>
+            <div class="a-stat rose"><div class="a-stat-icon a-si-rose"><i class="fa-solid fa-triangle-exclamation"></i></div><div class="a-stat-val" id="ac-risk" style="font-size:14px;font-family:var(--a-display);font-weight:800">—</div><div class="a-stat-lbl">Overall Risk</div></div>
+          </div>
+          <div class="a-grid-2 mb-18">
+            <div class="a-card">
+              <div class="a-card-header"><i class="fa-solid fa-chart-pie" style="color:var(--a-violet)"></i><span class="a-card-title">Pollutant Distribution</span></div>
+              <div class="a-card-body" style="display:flex;justify-content:center"><div class="chart-wrap" style="width:220px;height:220px"><canvas id="ac-chart"></canvas></div></div>
+            </div>
+            <div class="a-card">
+              <div class="a-card-header"><i class="fa-solid fa-list" style="color:var(--a-amber)"></i><span class="a-card-title">City Details</span></div>
+              <div class="a-card-body">
+                <div style="display:flex;flex-direction:column;gap:12px">
+                  <div style="display:flex;justify-content:space-between;padding-bottom:10px;border-bottom:1px solid var(--a-border2)"><span class="a-sm a-muted">AQI Category</span><span style="font-weight:600" id="ac-aqi-cat">—</span></div>
+                  <div style="display:flex;justify-content:space-between;padding-bottom:10px;border-bottom:1px solid var(--a-border2)"><span class="a-sm a-muted">Dominant Pollutant</span><span style="font-weight:600;color:var(--a-amber)" id="ac-dominant">—</span></div>
+                  <div style="display:flex;justify-content:space-between;padding-bottom:10px;border-bottom:1px solid var(--a-border2)"><span class="a-sm a-muted">Avg PM2.5</span><span class="a-mono a-sm" id="ac-pm25">—</span></div>
+                  <div style="display:flex;justify-content:space-between;padding-bottom:10px;border-bottom:1px solid var(--a-border2)"><span class="a-sm a-muted">Avg PM10</span><span class="a-mono a-sm" id="ac-pm10">—</span></div>
+                  <div style="display:flex;justify-content:space-between;padding-bottom:10px;border-bottom:1px solid var(--a-border2)"><span class="a-sm a-muted">Avg CO</span><span class="a-mono a-sm" id="ac-co">—</span></div>
+                  <div style="display:flex;justify-content:space-between;padding-bottom:10px;border-bottom:1px solid var(--a-border2)"><span class="a-sm a-muted">Avg NO&#8322;</span><span class="a-mono a-sm" id="ac-no2">—</span></div>
+                  <div style="display:flex;justify-content:space-between"><span class="a-sm a-muted">Avg SO&#8322;</span><span class="a-mono a-sm" id="ac-so2">—</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="a-card">
+            <div class="a-card-header"><i class="fa-solid fa-bars-progress" style="color:var(--a-green)"></i><span class="a-card-title">Pollutant Level Breakdown</span></div>
+            <div class="a-card-body" id="ac-bars"></div>
+          </div>
+        </div>
+
+        <div class="a-card" id="city-empty">
+          <div class="a-empty" style="padding:60px"><i class="fa-solid fa-satellite-dish"></i><h3>Search for a City</h3><p>Enter a city or location name to see aggregated pollution intelligence.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: AQI TRENDS ══ -->
+    <div class="a-page" id="ap-trends">
+      <div class="a-content">
+        <div class="a-page-header">
+          <div><div class="a-page-title">AQI Trends</div><div class="a-page-sub">Historical pollution patterns and risk level analytics</div></div>
+          <button class="a-btn a-btn-outline a-btn-sm" onclick="initTrends()"><i class="fa-solid fa-rotate"></i> Refresh</button>
+        </div>
+        <div class="a-grid-2 mb-18">
+          <div class="a-card">
+            <div class="a-card-header"><i class="fa-solid fa-chart-line" style="color:var(--a-rose)"></i><span class="a-card-title">Risk % &amp; AQI Trend</span></div>
+            <div class="a-card-body"><div class="chart-wrap" style="height:200px"><canvas id="trend-risk-line"></canvas></div></div>
+          </div>
+          <div class="a-card">
+            <div class="a-card-header"><i class="fa-solid fa-chart-bar" style="color:var(--a-cyan)"></i><span class="a-card-title">AQI by Location</span></div>
+            <div class="a-card-body"><div class="chart-wrap" style="height:200px"><canvas id="trend-aqi-bar"></canvas></div></div>
+          </div>
+        </div>
+        <div class="a-grid-2">
+          <div class="a-card">
+            <div class="a-card-header"><i class="fa-solid fa-circle-nodes" style="color:var(--a-violet)"></i><span class="a-card-title">Average Pollutant Radar</span></div>
+            <div class="a-card-body" style="display:flex;justify-content:center"><div class="chart-wrap" style="width:280px;height:280px"><canvas id="trend-radar"></canvas></div></div>
+          </div>
+          <div class="a-card">
+            <div class="a-card-header"><i class="fa-solid fa-fire" style="color:var(--a-amber)"></i><span class="a-card-title">Risk Level Heat Matrix</span></div>
+            <div class="a-card-body" id="trend-heat"><div class="a-empty" style="padding:20px"><i class="fa-solid fa-spinner fa-spin"></i></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: EMERGENCY ALERTS ══ -->
+    <div class="a-page" id="ap-alerts">
+      <div class="a-content">
+        <div class="a-page-header">
+          <div><div class="a-page-title">Emergency Alerts</div><div class="a-page-sub">Critical and high-risk cases requiring immediate government attention</div></div>
+          <button class="a-btn a-btn-outline a-btn-sm" onclick="initAlerts()"><i class="fa-solid fa-rotate"></i> Refresh</button>
+        </div>
+        <div class="a-stat-grid mb-18">
+          <div class="a-stat rose"><div class="a-stat-icon a-si-rose"><i class="fa-solid fa-skull-crossbones"></i></div><div class="a-stat-val a-rose" id="ea-critical">0</div><div class="a-stat-lbl">Critical Alerts</div></div>
+          <div class="a-stat amber"><div class="a-stat-icon a-si-amber"><i class="fa-solid fa-triangle-exclamation"></i></div><div class="a-stat-val a-amber" id="ea-high">0</div><div class="a-stat-lbl">High Risk Alerts</div></div>
+          <div class="a-stat cyan"><div class="a-stat-icon a-si-cyan"><i class="fa-solid fa-bell"></i></div><div class="a-stat-val a-cyan" id="ea-total">0</div><div class="a-stat-lbl">Total Alerts</div></div>
+        </div>
+        <div class="a-grid-2">
+          <div class="a-card">
+            <div class="a-card-header" style="border-left:3px solid var(--r-critical)"><i class="fa-solid fa-skull-crossbones" style="color:var(--r-critical)"></i><span class="a-card-title">Critical Cases</span></div>
+            <div class="a-card-body" id="ea-critical-list" style="max-height:500px;overflow-y:auto"><div class="a-empty"><i class="fa-solid fa-spinner fa-spin"></i></div></div>
+          </div>
+          <div class="a-card">
+            <div class="a-card-header" style="border-left:3px solid var(--r-high)"><i class="fa-solid fa-triangle-exclamation" style="color:var(--r-high)"></i><span class="a-card-title">High Risk Cases</span></div>
+            <div class="a-card-body" id="ea-high-list" style="max-height:500px;overflow-y:auto"><div class="a-empty"><i class="fa-solid fa-spinner fa-spin"></i></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: REPORT MANAGEMENT ══ -->
+    <div class="a-page" id="ap-reports">
+      <div class="a-content">
+        <div class="a-page-header">
+          <div><div class="a-page-title">Report Management</div><div class="a-page-sub">All health risk reports across all users and locations</div></div>
+          <button class="a-btn a-btn-outline a-btn-sm" onclick="initReports()"><i class="fa-solid fa-rotate"></i> Refresh</button>
+        </div>
+        <div class="a-stat-grid mb-18" style="grid-template-columns:1fr">
+          <div class="a-stat cyan" style="max-width:260px"><div class="a-stat-icon a-si-cyan"><i class="fa-solid fa-file-waveform"></i></div><div class="a-stat-val a-cyan" id="rm-total">0</div><div class="a-stat-lbl">Total Reports in System</div></div>
+        </div>
+        <div class="a-card">
+          <div class="a-card-header">
+            <i class="fa-solid fa-table" style="color:var(--a-green)"></i>
+            <span class="a-card-title">All Risk Reports</span>
+            <div class="a-card-header-actions">
+              <select class="a-select" onchange="filterReports(this.value)">
+                <option value="">All Levels</option>
+                <option value="LOW">LOW</option>
+                <option value="MODERATE">MODERATE</option>
+                <option value="HIGH">HIGH</option>
+                <option value="CRITICAL">CRITICAL</option>
+              </select>
+            </div>
+          </div>
+          <div class="a-table-wrap">
+            <table class="a-table">
+              <thead><tr><th>ID</th><th>User</th><th>Location</th><th>AQI</th><th>Risk %</th><th>Level</th><th>Organs Affected</th></tr></thead>
+              <tbody id="rm-tbody"><tr><td colspan="7" style="text-align:center;padding:28px;color:var(--a-muted)"><i class="fa-solid fa-spinner fa-spin"></i></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: HIGH RISK ZONES ══ -->
+    <div class="a-page" id="ap-zones">
+      <div class="a-content">
+        <div class="a-page-header">
+          <div><div class="a-page-title">High Risk Zones</div><div class="a-page-sub">Geographic areas with highest recorded pollution and health risk levels</div></div>
+          <button class="a-btn a-btn-outline a-btn-sm" onclick="initZones()"><i class="fa-solid fa-rotate"></i> Refresh</button>
+        </div>
+        <div class="a-stat-grid mb-18" style="grid-template-columns:repeat(2,1fr);max-width:480px">
+          <div class="a-stat rose"><div class="a-stat-icon a-si-rose"><i class="fa-solid fa-map-location-dot"></i></div><div class="a-stat-val a-rose" id="hz-zones">0</div><div class="a-stat-lbl">High Risk Zones</div></div>
+          <div class="a-stat amber"><div class="a-stat-icon a-si-amber"><i class="fa-solid fa-file-waveform"></i></div><div class="a-stat-val a-amber" id="hz-reports">0</div><div class="a-stat-lbl">Total Alerts</div></div>
+        </div>
+        <div class="a-grid-2">
+          <div class="a-card">
+            <div class="a-card-header"><i class="fa-solid fa-ranking-star" style="color:var(--a-rose)"></i><span class="a-card-title">Risk Zone Rankings</span></div>
+            <div class="a-card-body" id="hz-list" style="max-height:480px;overflow-y:auto"><div class="a-empty"><i class="fa-solid fa-spinner fa-spin"></i></div></div>
+          </div>
+          <div class="a-card">
+            <div class="a-card-header"><i class="fa-solid fa-chart-bar" style="color:var(--a-amber)"></i><span class="a-card-title">Zone Risk Chart</span></div>
+            <div class="a-card-body"><div class="chart-wrap" style="height:380px"><canvas id="hz-chart"></canvas></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: RECOMMENDATIONS ══ -->
+    <div class="a-page" id="ap-recs">
+      <div class="a-content">
+        <div class="a-page-header">
+          <div><div class="a-page-title">Recommendations</div><div class="a-page-sub">All health protection recommendations stored in the system</div></div>
+          <button class="a-btn a-btn-outline a-btn-sm" onclick="initRecs()"><i class="fa-solid fa-rotate"></i> Refresh</button>
+        </div>
+        <div class="a-stat-grid mb-18" style="grid-template-columns:repeat(2,1fr);max-width:480px">
+          <div class="a-stat green"><div class="a-stat-icon a-si-green"><i class="fa-solid fa-list-check"></i></div><div class="a-stat-val a-green" id="recs-total">0</div><div class="a-stat-lbl">Total Recommendations</div></div>
+        </div>
+        <div class="a-card">
+          <div class="a-card-header"><i class="fa-solid fa-shield-halved" style="color:var(--a-green)"></i><span class="a-card-title">All Recommendations by Risk Level</span></div>
+          <div class="a-card-body" id="recs-container"><div class="a-empty"><i class="fa-solid fa-spinner fa-spin"></i></div></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div><!-- /admin-app -->
+
+<script src="js/admin.js"></script>
+</body>
+</html>

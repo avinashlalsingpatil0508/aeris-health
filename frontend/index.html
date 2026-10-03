@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<!-- Lets api.js point at a different backend host/port without editing the
+     JS file. Change this value when deploying somewhere other than
+     localhost:8000. -->
+<meta name="aeris-api-base" content="http://localhost:8000/api" />
+<title>AERIS Health — Pollution &amp; Emission Risk Protection</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+<link rel="stylesheet" href="css/app.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<canvas id="particle-canvas"></canvas>
+<div id="loading-overlay" class="hidden">
+  <div class="spinner"></div>
+  <div id="loading-text">ANALYSING...</div>
+</div>
+<div id="toast-container"></div>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+<!-- ═══════════════════ SIDEBAR ═══════════════════ -->
+<aside id="app-sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-icon"><i class="fa-solid fa-leaf"></i></div>
+    <div class="sidebar-logo-text">AERIS<span>Health</span></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-item" data-page="dashboard" onclick="Router.go('dashboard')"><i class="fa-solid fa-gauge-high"></i> Dashboard</div>
+    <div class="nav-item" data-page="submit" onclick="Router.go('submit')"><i class="fa-solid fa-satellite-dish"></i> Submit Data</div>
+    <div class="nav-item" data-page="result" onclick="Router.go('result')"><i class="fa-solid fa-heart-pulse"></i> Risk Analysis</div>
+    <div class="nav-item" data-page="assistant" onclick="Router.go('assistant')"><i class="fa-solid fa-comment-medical"></i> AERIS Assistant</div>
+    <div class="nav-item" data-page="history" onclick="Router.go('history')"><i class="fa-solid fa-clock-rotate-left"></i> My History</div>
+    <div class="nav-item" data-page="recommend" onclick="Router.go('recommend')"><i class="fa-solid fa-shield-halved"></i> Protection Advice</div>
+    <div class="nav-item" data-page="city" onclick="Router.go('city')"><i class="fa-solid fa-city"></i> City Monitor</div>
+    <div class="nav-item" data-page="admin" onclick="Router.go('admin')"><i class="fa-solid fa-chart-pie"></i> Admin Analytics</div>
+    <div class="nav-item" onclick="window.open('admin/admin.html','_blank')"><i class="fa-solid fa-user-shield"></i> Admin Portal</div>
+  </nav>
+  <div class="sidebar-user-chip">
+    <div class="chip-avatar" id="user-chip-avatar">U</div>
+    <div class="chip-name" id="user-chip-name">User</div>
+    <button class="btn-ghost" title="Log out" onclick="handleLogout()"><i class="fa-solid fa-right-from-bracket"></i></button>
+  </div>
+</aside>
+
+<!-- ═══════════════════ TOPBAR ═══════════════════ -->
+<header id="app-topbar">
+  <div style="display:flex;align-items:center;gap:14px">
+    <button id="hamburger-btn"><i class="fa-solid fa-bars"></i></button>
+    <div id="topbar-title">Dashboard</div>
+  </div>
+  <div class="topbar-right">
+    <div id="topbar-avatar">U</div>
+  </div>
+</header>
+
+<!-- Mobile bottom navigation (app-style, hidden on desktop and on auth pages) -->
+<nav id="mobile-bottom-nav" class="hidden">
+  <div class="bottom-nav-row">
+    <div class="bottom-nav-item" data-bottom-page="dashboard" onclick="Router.go('dashboard')"><i class="fa-solid fa-house"></i>Home</div>
+    <div class="bottom-nav-item" data-bottom-page="submit" onclick="Router.go('submit')"><i class="fa-solid fa-satellite-dish"></i>AQI</div>
+    <div class="bottom-nav-item" data-bottom-page="result" onclick="Router.go('result')"><i class="fa-solid fa-heart-pulse"></i>Risk</div>
+    <div class="bottom-nav-item" data-bottom-page="assistant" onclick="Router.go('assistant')"><i class="fa-solid fa-comment-medical"></i>Assistant</div>
+    <div class="bottom-nav-item" data-bottom-page="history" onclick="Router.go('history')"><i class="fa-solid fa-clock-rotate-left"></i>History</div>
+    <div class="bottom-nav-item" data-bottom-page="profile" onclick="toggleMobileSidebar()"><i class="fa-solid fa-user"></i>Profile</div>
+  </div>
+</nav>
+
+<div id="main-content-wrap">
+
+  <!-- ═══════════════════ LANDING ═══════════════════ -->
+  <section id="page-landing" class="page active">
+
+    <!-- Public site header -->
+    <header class="site-header" id="site-header">
+      <div class="site-logo">
+        <div class="site-logo-icon"><i class="fa-solid fa-leaf"></i></div>
+        AERIS<span>Health</span>
+      </div>
+      <nav class="site-nav">
+        <a onclick="scrollToSection('lp-home')">Home</a>
+        <a onclick="scrollToSection('lp-how')">How It Works</a>
+        <a onclick="scrollToSection('lp-features')">Features</a>
+        <a onclick="scrollToSection('lp-assistant-intro')">AERIS Assistant</a>
+      </nav>
+      <div class="site-nav-actions">
+        <button class="btn btn-outline btn-sm" onclick="Router.go('login')">Login</button>
+        <button class="btn btn-primary btn-sm" onclick="Router.go('register')">Get Started</button>
+      </div>
+      <button class="site-menu-btn" aria-label="Menu" onclick="document.getElementById('site-header').classList.toggle('nav-open')"><i class="fa-solid fa-bars"></i></button>
+    </header>
+
+    <!-- Hero -->
+    <div id="lp-home" class="hero-split">
+      <div class="hero-text fade-up">
+        <div class="hero-eyebrow"><i class="fa-solid fa-leaf"></i> AERIS Health</div>
+        <h1>KNOW YOUR AIR.<br/>PROTECT YOUR <span>HEALTH</span>.</h1>
+        <p>Live environmental intelligence for everyday health decisions.</p>
+        <div class="hero-actions">
+          <button class="btn btn-primary" onclick="Router.go('register')"><i class="fa-solid fa-location-crosshairs"></i> Check My Environment</button>
+          <button class="btn btn-outline" onclick="scrollToSection('lp-how')"><i class="fa-solid fa-circle-play"></i> Learn How AERIS Works</button>
+        </div>
+        <div class="hero-trust">
+          <div class="hero-trust-item"><strong>Live</strong> WAQI + Weather Data</div>
+          <div class="hero-trust-item"><strong>6</strong> Pollutants Tracked</div>
+          <div class="hero-trust-item"><strong>4</strong> Risk Levels</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Features -->
+    <div id="lp-features" class="site-section">
+      <div class="section-head fade-up">
+        <div class="section-eyebrow">Features</div>
+        <h2>Environmental Intelligence for Everyday Health</h2>
+      </div>
+      <div class="feature-grid">
+        <div class="feature-card fade-up"><i class="fa-solid fa-satellite-dish"></i><h3>Live Environment</h3><p>Live AQI, pollutant and weather information.</p></div>
+        <div class="feature-card fade-up"><i class="fa-solid fa-heart-pulse"></i><h3>Personal Risk Analysis</h3><p>Personalized environmental health risk assessment.</p></div>
+        <div class="feature-card fade-up"><i class="fa-solid fa-lungs"></i><h3>Health Impact Insights</h3><p>Understand how pollution may affect health.</p></div>
+        <div class="feature-card fade-up"><i class="fa-solid fa-shield-halved"></i><h3>Personalized Protection</h3><p>Actionable recommendations based on current conditions.</p></div>
+      </div>
+    </div>
+
+    <!-- Live AQI / Environment -->
+    <div id="lp-aqi" class="site-section alt">
+      <div class="content-split">
+        <div class="content-text fade-up">
+          <h2>Live Air Quality, Based on Real Data</h2>
+          <p>AERIS Health uses the World Air Quality Index (WAQI) network to fetch current AQI and pollutant readings for a location - no invented numbers.</p>
+          <ul class="content-list">
+            <li><i class="fa-solid fa-circle-check"></i> AQI, PM2.5, PM10, CO, NO₂ and SO₂ readings</li>
+            <li><i class="fa-solid fa-circle-check"></i> Live AQI based on the nearest available monitoring station</li>
+            <li><i class="fa-solid fa-circle-check"></i> Missing pollutant values are shown as unavailable, never guessed</li>
+          </ul>
+        </div>
+        <div class="content-visual fade-up">
+          <div class="hero-visual-header"><h4>GOOD</h4><i class="fa-solid fa-circle-check" style="color:var(--natural-green)"></i></div>
+          <div class="hero-visual-row"><span>AQI Category</span><b>0-50</b></div>
+          <div class="hero-visual-row"><span>MODERATE</span><b>51-100</b></div>
+          <div class="hero-visual-row"><span>UNHEALTHY (SENSITIVE)</span><b>101-150</b></div>
+          <div class="hero-visual-row"><span>UNHEALTHY</span><b>151-200</b></div>
+          <div class="hero-visual-row"><span>VERY UNHEALTHY</span><b>201-300</b></div>
+          <div class="hero-visual-row"><span>HAZARDOUS</span><b>301-500</b></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Health Risk Monitoring -->
+    <div id="lp-risk" class="site-section">
+      <div class="content-split reverse">
+        <div class="content-visual fade-up">
+          <div class="hero-visual-header"><h4>SAMPLE RISK SCORE</h4></div>
+          <div class="hero-visual-aqi" style="color:var(--accent-orange)">64<span style="font-size:20px">%</span></div>
+          <div style="font-size:12px;color:var(--accent-orange);font-weight:700;margin-bottom:14px">HIGH RISK</div>
+          <div class="hero-visual-row"><span>Affected Systems</span><b>Lungs, Heart</b></div>
+          <div class="hero-visual-row"><span>Based on</span><b>Age, condition, exposure</b></div>
+        </div>
+        <div class="content-text fade-up">
+          <h2>Health Risk That's Personal to You</h2>
+          <p>The same AQI affects people differently. AERIS Health combines the current pollution level with your age, health condition, smoking status and exposure time into one risk score.</p>
+          <ul class="content-list">
+            <li><i class="fa-solid fa-circle-check"></i> Risk percentage and risk level (Low, Moderate, High, Critical)</li>
+            <li><i class="fa-solid fa-circle-check"></i> Possible affected organs and systems</li>
+            <li><i class="fa-solid fa-circle-check"></i> This is a health-risk awareness tool, not a medical diagnosis</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- How It Works -->
+    <div id="lp-how" class="site-section alt">
+      <div class="section-head fade-up">
+        <div class="section-eyebrow">Process</div>
+        <h2>How AERIS Works</h2>
+        <p>From live environmental data to personalized health guidance.</p>
+      </div>
+      <div class="steps-row">
+        <div class="step-card fade-up"><div class="step-num">01</div><h4>Location</h4><p>Get your location with permission.</p></div>
+        <div class="step-card fade-up"><div class="step-num">02</div><h4>Live Environment</h4><p>Fetch live AQI, pollutants and weather data.</p></div>
+        <div class="step-card fade-up"><div class="step-num">03</div><h4>Risk Analysis</h4><p>Analyze environmental exposure using the AERIS risk engine.</p></div>
+        <div class="step-card fade-up"><div class="step-num">04</div><h4>Health Insights</h4><p>Understand possible health impacts.</p></div>
+        <div class="step-card fade-up"><div class="step-num">05</div><h4>Protection</h4><p>Receive personalized recommendations.</p></div>
+      </div>
+    </div>
+
+    <!-- Meet AERIS Assistant -->
+    <div id="lp-assistant-intro" class="site-section alt">
+      <div class="assistant-intro-wrap">
+        <div class="assistant-intro-text fade-up">
+          <div class="section-eyebrow">AERIS Assistant</div>
+          <h2>Meet AERIS Assistant</h2>
+          <p>Ask AERIS about the environment around you and understand what it means for your health.</p>
+          <button class="btn btn-primary" onclick="Router.go('assistant')"><i class="fa-solid fa-comment-medical"></i> Ask AERIS</button>
+        </div>
+        <div class="assistant-preview fade-up">
+          <div class="assistant-preview-row assistant-preview-user">
+            <div class="assistant-preview-bubble">Hey AERIS, how is the environment around me?</div>
+          </div>
+          <div class="assistant-preview-row assistant-preview-bot">
+            <div class="assistant-preview-avatar"><i class="fa-solid fa-leaf"></i></div>
+            <div class="assistant-preview-bubble">Let me check your current environment, air quality and weather conditions.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Protection / Recommendations -->
+    <div id="lp-protection" class="site-section">
+      <div class="section-head fade-up">
+        <div class="section-eyebrow">Protection</div>
+        <h2>Clear advice for every risk level</h2>
+      </div>
+      <div class="feature-grid">
+        <div class="feature-card fade-up"><i class="fa-solid fa-circle-check" style="color:var(--natural-green)"></i><h3>Recommended</h3><p>Monitor AQI regularly, maintain good indoor air quality, stay hydrated.</p></div>
+        <div class="feature-card fade-up"><i class="fa-solid fa-triangle-exclamation" style="color:var(--accent-amber)"></i><h3>Caution</h3><p>Reduce prolonged outdoor exposure and avoid strenuous activity outdoors.</p></div>
+        <div class="feature-card fade-up"><i class="fa-solid fa-ban" style="color:var(--accent-rose)"></i><h3>Avoid</h3><p>Avoid unnecessary outdoor exposure and strenuous exercise outdoors.</p></div>
+      </div>
+    </div>
+
+    <!-- City Monitor -->
+    <div id="lp-city" class="site-section alt">
+      <div class="content-split">
+        <div class="content-text fade-up">
+          <h2>Check Any City's Air Quality</h2>
+          <p>Search a city to see its average AQI, pollutant breakdown and overall risk level, based on data already submitted by users.</p>
+          <ul class="content-list">
+            <li><i class="fa-solid fa-circle-check"></i> City-wide average AQI and category</li>
+            <li><i class="fa-solid fa-circle-check"></i> Pollutant mix for the searched city</li>
+            <li><i class="fa-solid fa-circle-check"></i> City Monitor is separate from your personal GPS location</li>
+          </ul>
+        </div>
+        <div class="content-visual fade-up">
+          <div class="hero-visual-header"><h4>CITY MONITOR PREVIEW</h4><i class="fa-solid fa-city" style="color:var(--text-dim)"></i></div>
+          <div class="hero-visual-row"><span>City</span><b>Pune</b></div>
+          <div class="hero-visual-row"><span>Average AQI</span><b>96</b></div>
+          <div class="hero-visual-row"><span>Category</span><b>Moderate</b></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trust / Stats -->
+    <div id="lp-about" class="site-section">
+      <div class="section-head fade-up">
+        <div class="section-eyebrow">About AERIS Health</div>
+        <h2>A student-built environmental health project</h2>
+        <p>AERIS Health is an academic project focused on making air pollution data personal and actionable, using real live AQI data and a transparent, explainable risk model.</p>
+      </div>
+      <div class="stats-band">
+        <div class="fade-up"><div class="stat-num">6</div><div class="stat-label">Pollutants Tracked</div></div>
+        <div class="fade-up"><div class="stat-num">4</div><div class="stat-label">Risk Levels</div></div>
+        <div class="fade-up"><div class="stat-num">100%</div><div class="stat-label">Live AQI Data</div></div>
+        <div class="fade-up"><div class="stat-num">0</div><div class="stat-label">Fabricated Predictions</div></div>
+      </div>
+    </div>
+
+    <!-- Call To Action -->
+    <div class="site-section" style="padding-top:0">
+      <div class="cta-band fade-up">
+        <h2>Ready to understand your air quality risk?</h2>
+        <p>Create a free account and get your first personalised health risk report in minutes.</p>
+        <button class="btn btn-primary" onclick="Router.go('register')"><i class="fa-solid fa-user-plus"></i> Get Started Free</button>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <div class="site-logo" style="margin-bottom:10px"><div class="site-logo-icon"><i class="fa-solid fa-leaf"></i></div>AERIS<span>Health</span></div>
+          <p>Live pollution monitoring &amp; personal health protection.</p>
+        </div>
+        <div class="footer-col">
+          <h5>PLATFORM</h5>
+          <a onclick="scrollToSection('lp-aqi')">Live AQI</a>
+          <a onclick="scrollToSection('lp-risk')">Health Risk</a>
+          <a onclick="scrollToSection('lp-protection')">Protection</a>
+        </div>
+        <div class="footer-col">
+          <h5>ACCOUNT</h5>
+          <a onclick="Router.go('login')">Sign In</a>
+          <a onclick="Router.go('register')">Get Started</a>
+        </div>
+        <div class="footer-col">
+          <h5>PROJECT</h5>
+          <a onclick="scrollToSection('lp-about')">About</a>
+          <p>Academic project - not a medical diagnosis tool.</p>
+        </div>
+      </div>
+      <div class="footer-bottom">AERIS Health - AI-Based Pollution and Emission Health Risk &amp; Protection System</div>
+    </footer>
+  </section>
+
+  <!-- ═══════════════════ LOGIN ═══════════════════ -->
+  <section id="page-login" class="page">
+    <div class="auth-wrap">
+      <div class="auth-card">
+        <div class="auth-logo"><div class="auth-logo-icon"><i class="fa-solid fa-leaf"></i></div></div>
+        <div class="auth-title">AERIS <span>Health</span></div>
+        <div class="auth-subtitle">Sign in to view your health risk dashboard</div>
+        <form id="login-form">
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <input class="form-input" type="email" name="log_email" required placeholder="you@example.com" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input class="form-input" type="password" name="log_pass" required placeholder="••••••••" />
+          </div>
+          <button class="btn btn-primary btn-block" type="submit"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
+        </form>
+        <div class="auth-switch">Don't have an account? <a onclick="Router.go('register')">Create one</a></div>
+        <div class="auth-switch"><a onclick="Router.go('landing')"><i class="fa-solid fa-arrow-left"></i> Back to home</a></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ REGISTER ═══════════════════ -->
+  <section id="page-register" class="page">
+    <div class="auth-wrap">
+      <div class="auth-card">
+        <div class="auth-logo"><div class="auth-logo-icon"><i class="fa-solid fa-leaf"></i></div></div>
+        <div class="auth-title">Create <span>Account</span></div>
+        <div class="auth-subtitle">A few details to personalise your health risk analysis</div>
+        <form id="register-form">
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input class="form-input" type="text" name="reg_name" required minlength="2" placeholder="Jane Doe" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <input class="form-input" type="email" name="reg_email" required placeholder="you@example.com" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input class="form-input" type="password" name="reg_pass" required minlength="4" placeholder="At least 4 characters" />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Age</label>
+              <input class="form-input" type="number" name="reg_age" required min="1" max="120" placeholder="30" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Gender</label>
+              <select class="form-select" name="reg_gender" required>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Existing Health Condition</label>
+            <select class="form-select" name="reg_condition">
+              <option value="NORMAL">None / Normal</option>
+              <option value="ASTHMA">Asthma</option>
+              <option value="HEART_DISEASE">Heart Disease</option>
+              <option value="COPD">COPD</option>
+              <option value="DIABETES">Diabetes</option>
+              <option value="ALLERGIES">Allergies</option>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-block" type="submit"><i class="fa-solid fa-user-plus"></i> Create Account</button>
+        </form>
+        <div class="auth-switch">Already have an account? <a onclick="Router.go('login')">Sign in</a></div>
+        <div class="auth-switch"><a onclick="Router.go('landing')"><i class="fa-solid fa-arrow-left"></i> Back to home</a></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ DASHBOARD ═══════════════════ -->
+  <section id="page-dashboard" class="page">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+      <h2 class="font-display" id="dash-greet" style="font-size:22px;margin:0">Welcome 👋</h2>
+      <button class="btn btn-outline btn-sm" onclick="Router.go('assistant')"><i class="fa-solid fa-comment-medical"></i> Ask AERIS Assistant</button>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card"><i class="fa-solid fa-file-lines stat-icon"></i><div class="stat-label">TOTAL REPORTS</div><div class="stat-value" id="dash-total">0</div></div>
+      <div class="stat-card"><i class="fa-solid fa-triangle-exclamation stat-icon" style="color:var(--risk-high)"></i><div class="stat-label">HIGH / CRITICAL</div><div class="stat-value" id="dash-high" style="color:var(--risk-high)">0</div></div>
+      <div class="stat-card"><i class="fa-solid fa-circle-exclamation stat-icon" style="color:var(--risk-moderate)"></i><div class="stat-label">MODERATE</div><div class="stat-value" id="dash-moderate" style="color:var(--risk-moderate)">0</div></div>
+      <div class="stat-card"><i class="fa-solid fa-circle-check stat-icon" style="color:var(--risk-low)"></i><div class="stat-label">LOW RISK</div><div class="stat-value" id="dash-low" style="color:var(--risk-low)">0</div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">Latest Risk Report</div>
+      <div id="last-report-card"><div class="empty-state"><i class="fa-solid fa-inbox"></i><h3>No reports yet</h3><p>Submit pollution data to see your latest risk score here.</p></div></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Recent AQI Readings</div>
+        <div class="chart-box"><canvas id="dash-aqi-chart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Recent Reports</div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>ID</th><th>Location</th><th>AQI</th><th>Risk</th><th></th></tr></thead>
+            <tbody id="dash-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ SUBMIT ═══════════════════ -->
+  <section id="page-submit" class="page">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Submit Pollution Reading</div>
+
+        <form id="pollution-form">
+          <div class="form-group">
+            <label class="form-label">Location</label>
+            <div style="display:flex;gap:10px">
+              <input class="form-input" type="text" name="location" required placeholder="e.g. Pune, Maharashtra" style="flex:1" />
+              <button type="button" class="btn btn-outline" id="fetch-live-btn"><i class="fa-solid fa-satellite-dish"></i> Fetch Live Data</button>
+            </div>
+            <div class="form-hint">Fetches current AQI &amp; pollutant readings for this location from the live WAQI API. Review values before submitting — some pollutants may be unavailable for a given location.</div>
+          </div>
+          <div id="live-fetch-status"></div>
+
+          <div class="form-group">
+            <label class="form-label">AQI (Air Quality Index)</label>
+            <input class="form-input" type="number" step="0.1" id="aqi-input" name="aqi" required min="0" max="500" placeholder="0–500" />
+            <div class="form-hint">Live preview: <span id="aqi-preview" style="font-weight:700">—</span> · <span id="aqi-cat-preview">—</span></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">PM2.5 (µg/m³)</label><input class="form-input" type="number" step="0.1" name="pm25" min="0" placeholder="0" /></div>
+            <div class="form-group"><label class="form-label">PM10 (µg/m³)</label><input class="form-input" type="number" step="0.1" name="pm10" min="0" placeholder="0" /></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">CO (ppm)</label><input class="form-input" type="number" step="0.1" name="co_level" min="0" placeholder="0" /></div>
+            <div class="form-group"><label class="form-label">NO₂ (µg/m³)</label><input class="form-input" type="number" step="0.1" name="no2_level" min="0" placeholder="0" /></div>
+          </div>
+          <div class="form-group"><label class="form-label">SO₂ (µg/m³)</label><input class="form-input" type="number" step="0.1" name="so2_level" min="0" placeholder="0" /></div>
+
+          <div style="border-top:1px solid var(--border2);margin:18px 0" ></div>
+          <div class="card-title" style="font-size:13px;color:var(--text-secondary)">PERSONAL EXPOSURE FACTORS</div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Exposure Hours / Day</label>
+              <input class="form-input" type="number" name="exposure_hours" required min="0" max="24" placeholder="4" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Pollution Exposure Level</label>
+              <select class="form-select" name="exposure_level" required>
+                <option value="LOW">Low</option>
+                <option value="MEDIUM" selected>Medium</option>
+                <option value="HIGH">High</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group form-check">
+            <input type="checkbox" name="smoker" id="smoker-check" />
+            <label for="smoker-check">I am a smoker</label>
+          </div>
+
+          <button class="btn btn-primary btn-block" type="submit"><i class="fa-solid fa-magnifying-glass-chart"></i> Run Health Risk Analysis</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="card-title">How This Works</div>
+        <div class="landing-feature" style="margin-bottom:12px"><i class="fa-solid fa-1"></i><h4>Enter your location</h4><p>Then tap "Fetch Live Data" to auto-populate AQI &amp; pollutant readings.</p></div>
+        <div class="landing-feature" style="margin-bottom:12px"><i class="fa-solid fa-2"></i><h4>Review the values</h4><p>Live data may be missing for some pollutants — adjust manually if needed.</p></div>
+        <div class="landing-feature" style="margin-bottom:12px"><i class="fa-solid fa-3"></i><h4>Add your exposure factors</h4><p>Exposure hours and level, plus your saved age &amp; health condition, personalise the score.</p></div>
+        <div class="landing-feature"><i class="fa-solid fa-4"></i><h4>Get your risk report</h4><p>Receive a risk percentage, affected organs, health impacts and protection advice.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ RESULT ═══════════════════ -->
+  <section id="page-result" class="page">
+    <div id="res-alert" class="alert alert-moderate"><i class="fa-solid fa-circle-info"></i><span>Submit pollution data to see your risk analysis.</span></div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Risk Score — <span id="res-location">—</span></div>
+        <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+          <div class="gauge-wrap">
+            <svg id="gauge-svg" width="220" height="130" viewBox="0 0 220 130">
+              <path d="M 30 110 A 80 80 0 0 1 190 110" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="16" stroke-linecap="round"/>
+              <path class="gauge-fill" d="M 30 110 A 80 80 0 0 1 190 110" fill="none" stroke="#a8ff3e" stroke-width="16" stroke-linecap="round"/>
+            </svg>
+            <div class="gauge-value-wrap">
+              <div id="gauge-value">0.0</div>
+              <div style="font-size:11px;color:var(--text-secondary)">RISK %</div>
+            </div>
+          </div>
+          <div>
+            <div id="res-risk-level" class="badge badge-low" style="font-size:14px;margin-bottom:12px"><span class="badge-dot"></span> —</div>
+            <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">Current AQI</div>
+            <div id="res-aqi" class="font-display" style="font-size:28px;font-weight:800">—</div>
+            <div id="res-aqi-cat" style="font-size:12px;color:var(--text-secondary)">—</div>
+            <div style="font-size:12px;color:var(--text-secondary);margin-top:10px">Affected Organs: <span id="res-organs" style="color:var(--text-primary)">—</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Pollutant Breakdown</div>
+        <div class="chart-box-sm"><canvas id="res-radar-chart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px">
+      <div class="card-title">Pollutant Levels</div>
+      <div id="res-pollutant-bars"></div>
+    </div>
+
+    <div class="card" style="margin-top:20px">
+      <div class="card-title">Health Impacts</div>
+      <div id="res-impacts"></div>
+    </div>
+
+    <div class="card" style="margin-top:20px">
+      <div class="card-title">Recommendations</div>
+      <div id="res-recs"></div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ AERIS ASSISTANT ═══════════════════ -->
+  <section id="page-assistant" class="page">
+    <div class="card assistant-header">
+      <div class="assistant-identity">
+        <div class="assistant-avatar"><i class="fa-solid fa-leaf"></i></div>
+        <div>
+          <div class="assistant-title">AERIS Assistant</div>
+          <div class="assistant-subtitle">Your live environmental health companion</div>
+        </div>
+      </div>
+      <div class="assistant-status-row">
+        <span id="assistant-location-status" class="assistant-status-pill">
+          <i class="fa-solid fa-location-crosshairs"></i> Location not shared
+        </span>
+        <button class="btn btn-sm btn-outline" id="assistant-refresh-btn" type="button">
+          <i class="fa-solid fa-arrows-rotate"></i> Refresh Environment
+        </button>
+      </div>
+    </div>
+
+    <div class="card assistant-env-card">
+      <div class="empty-state" id="assistant-env-empty">
+        <i class="fa-solid fa-satellite-dish"></i>
+        <h3>Share your location to see live conditions</h3>
+        <p>AERIS uses your device location to fetch live AQI, weather and (if you're signed in) your personal health risk from the existing AERIS risk engine. Nothing is stored beyond this request.</p>
+        <button class="btn btn-primary btn-sm" id="assistant-locate-btn" type="button"><i class="fa-solid fa-location-crosshairs"></i> Use My Location</button>
+      </div>
+      <div class="assistant-env-grid hidden" id="assistant-env-grid">
+        <div class="env-stat"><div class="env-stat-label">AQI</div><div class="env-stat-value" id="env-aqi-value">—</div><div class="env-stat-sub" id="env-aqi-cat">—</div></div>
+        <div class="env-stat"><div class="env-stat-label">RISK</div><div class="env-stat-value" id="env-risk-value">—</div><div class="env-stat-sub" id="env-risk-level">—</div></div>
+        <div class="env-stat"><div class="env-stat-label">TEMPERATURE</div><div class="env-stat-value" id="env-temp-value">—</div><div class="env-stat-sub" id="env-weather-cond">—</div></div>
+        <div class="env-stat"><div class="env-stat-label">HUMIDITY</div><div class="env-stat-value" id="env-humidity-value">—</div><div class="env-stat-sub" id="env-location-name">—</div></div>
+      </div>
+    </div>
+
+    <div class="card assistant-chat-card">
+      <div class="assistant-suggestions" id="assistant-suggestions">
+        <button type="button" class="chip" data-q="What's my environment right now?">What's my environment right now?</button>
+        <button type="button" class="chip" data-q="Is it safe to go outside?">Is it safe to go outside?</button>
+        <button type="button" class="chip" data-q="Why is my risk high?">Why is my risk high?</button>
+        <button type="button" class="chip" data-q="What should I do right now?">What should I do right now?</button>
+      </div>
+
+      <div class="assistant-messages" id="assistant-messages">
+        <div class="assistant-msg assistant-msg-bot">
+          <div class="assistant-msg-bubble">
+            Hi, I'm the AERIS Assistant. Share your location above, then ask me anything about your current environment or health risk. I only ever use your live, currently-fetched data - never invented numbers.
+          </div>
+        </div>
+      </div>
+
+      <div id="assistant-typing" class="assistant-typing hidden"><span></span><span></span><span></span></div>
+
+      <form id="assistant-form" class="assistant-input-row">
+        <input type="text" id="assistant-input" placeholder="Ask about your environment..." autocomplete="off" />
+        <button type="submit" class="btn btn-primary" id="assistant-send-btn" aria-label="Send"><i class="fa-solid fa-paper-plane"></i></button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ HISTORY ═══════════════════ -->
+  <section id="page-history" class="page">
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">Risk &amp; AQI Trend</div>
+      <div class="chart-box"><canvas id="history-trend-chart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Full History</div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>ID</th><th>Location</th><th>AQI</th><th>Risk %</th><th>Level</th><th>Date</th><th></th></tr></thead>
+          <tbody id="history-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ RECOMMEND ═══════════════════ -->
+  <section id="page-recommend" class="page">
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">Browse by Risk Level</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px">
+        <button class="btn btn-sm btn-outline rec-level-btn" data-level="LOW" onclick="loadRecsByLevel('LOW')">Low</button>
+        <button class="btn btn-sm btn-primary rec-level-btn" data-level="MODERATE" onclick="loadRecsByLevel('MODERATE')">Moderate</button>
+        <button class="btn btn-sm btn-outline rec-level-btn" data-level="HIGH" onclick="loadRecsByLevel('HIGH')">High</button>
+        <button class="btn btn-sm btn-outline rec-level-btn" data-level="CRITICAL" onclick="loadRecsByLevel('CRITICAL')">Critical</button>
+      </div>
+      <div id="rec-container"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Get Personalised Advice</div>
+      <form id="dynamic-advice-form" onsubmit="event.preventDefault(); loadDynamicAdvice();">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Current AQI</label><input class="form-input" type="number" name="d_aqi" required min="0" max="500" placeholder="150" /></div>
+          <div class="form-group"><label class="form-label">PM2.5 (µg/m³)</label><input class="form-input" type="number" name="d_pm25" min="0" placeholder="60" /></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">CO (ppm)</label><input class="form-input" type="number" name="d_co" min="0" placeholder="3" /></div>
+          <div class="form-group"><label class="form-label">Age</label><input class="form-input" type="number" name="d_age" required min="1" max="120" placeholder="30" /></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Health Condition</label>
+            <select class="form-select" name="d_condition">
+              <option value="NORMAL">None / Normal</option>
+              <option value="ASTHMA">Asthma</option>
+              <option value="HEART_DISEASE">Heart Disease</option>
+              <option value="COPD">COPD</option>
+              <option value="DIABETES">Diabetes</option>
+              <option value="ALLERGIES">Allergies</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Exposure Level</label>
+            <select class="form-select" name="d_explevel">
+              <option value="LOW">Low</option>
+              <option value="MEDIUM" selected>Medium</option>
+              <option value="HIGH">High</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Exposure Hours / Day</label><input class="form-input" type="number" name="d_hours" min="0" max="24" placeholder="4" /></div>
+          <div class="form-group form-check" style="align-self:flex-end;margin-bottom:12px">
+            <input type="checkbox" name="d_smoker" id="d_smoker-check" />
+            <label for="d_smoker-check">I am a smoker</label>
+          </div>
+        </div>
+        <button class="btn btn-primary" type="submit"><i class="fa-solid fa-wand-magic-sparkles"></i> Get Advice</button>
+      </form>
+
+      <div id="dynamic-result" class="hidden" style="margin-top:20px">
+        <div class="card-body"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ CITY MONITOR ═══════════════════ -->
+  <section id="page-city" class="page">
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">Search a City</div>
+      <div style="display:flex;gap:10px">
+        <input class="form-input" type="text" id="city-search-input" placeholder="e.g. Mumbai" style="flex:1" onkeydown="if(event.key==='Enter') searchCity()" />
+        <button class="btn btn-primary" onclick="searchCity()"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+      </div>
+    </div>
+
+    <div id="city-empty" class="card">
+      <div class="empty-state"><i class="fa-solid fa-city"></i><h3>Search a city</h3><p>Enter a city name above to see aggregated pollution data from submitted readings.</p></div>
+    </div>
+
+    <div id="city-result" class="hidden">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title" id="city-name">—</div>
+          <div style="display:flex;gap:24px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:11px;color:var(--text-secondary)">AVERAGE AQI</div>
+              <div id="city-aqi" class="font-display" style="font-size:36px;font-weight:800">—</div>
+              <div id="city-aqi-cat" style="font-size:12px;color:var(--text-secondary)">—</div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--text-secondary)">OVERALL RISK</div>
+              <div id="city-risk" style="font-size:16px;font-weight:700;margin-top:6px">—</div>
+              <div style="font-size:11px;color:var(--text-secondary);margin-top:8px">RECORDS: <span id="city-records">0</span></div>
+            </div>
+          </div>
+          <div style="margin-top:16px;font-size:12.5px;color:var(--text-secondary)">
+            Dominant Pollutant: <span id="city-pollutant" style="color:var(--text-primary);font-weight:600">—</span><br/>
+            PM2.5: <span id="city-pm25">—</span> · PM10: <span id="city-pm10">—</span> · CO: <span id="city-co">—</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Pollutant Mix</div>
+          <div class="chart-box-sm"><canvas id="city-pollutant-chart"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ ADMIN ANALYTICS (in-app tab) ═══════════════════ -->
+  <section id="page-admin" class="page">
+    <div class="stat-grid">
+      <div class="stat-card"><i class="fa-solid fa-users stat-icon"></i><div class="stat-label">TOTAL USERS</div><div class="stat-value" id="admin-total-users">0</div></div>
+      <div class="stat-card"><i class="fa-solid fa-file-lines stat-icon"></i><div class="stat-label">TOTAL REPORTS</div><div class="stat-value" id="admin-total-reports">0</div></div>
+      <div class="stat-card"><i class="fa-solid fa-skull-crossbones stat-icon" style="color:var(--risk-critical)"></i><div class="stat-label">CRITICAL CASES</div><div class="stat-value" id="admin-critical" style="color:var(--risk-critical)">0</div></div>
+      <div class="stat-card"><i class="fa-solid fa-percent stat-icon"></i><div class="stat-label">HIGH RISK %</div><div class="stat-value" id="admin-high-pct">0</div></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Risk Level Distribution</div>
+        <div class="chart-box-sm"><canvas id="admin-risk-pie"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">High / Critical Risk Cases</div>
+        <div id="admin-high-risk-list"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px">
+      <div class="card-title">Registered Users</div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Age / Gender</th><th>Health Condition</th></tr></thead>
+          <tbody id="admin-users-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="form-hint" style="margin-top:14px">
+      For user management, city AQI monitoring, alerts, and full admin controls, use the
+      <a onclick="window.open('admin/admin.html','_blank')" style="color:var(--accent-lime);font-weight:600;cursor:pointer">separate Admin Portal</a>.
+    </div>
+  </section>
+
+</div><!-- /main-content-wrap -->
+
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+<script src="js/environment.js"></script>
+<script src="js/assistant.js"></script>
+<script src="js/pages.js"></script>
+</body>
+</html>

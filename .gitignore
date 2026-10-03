@@ -1,0 +1,8 @@
+backend/.env
+backend/venv/
+__pycache__/
+*.pyc
+.env
+*.log
+
+frontend/assets/images/oracleJdk-27/
