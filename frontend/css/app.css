@@ -637,3 +637,198 @@ tbody tr:hover { background: var(--hover); }
   }
   .fade-up { opacity: 1 !important; transform: none !important; }
 }
+/* ============================================================
+   AERIS HEALTH — RESPONSIVE MOBILE FIX
+   Desktop design remains unchanged
+   ============================================================ */
+
+@media (max-width: 860px) {
+
+  /* Prevent horizontal overflow */
+  html,
+  body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Main application area */
+  #main-content-wrap {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0 !important;
+    padding-top: var(--topbar-h);
+    overflow-x: hidden;
+  }
+
+  /* Top bar */
+  #app-topbar {
+    width: 100%;
+    left: 0 !important;
+    margin-left: 0 !important;
+  }
+
+  /* Every page uses the complete mobile width */
+  .page {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 20px 16px 90px !important;
+    overflow-x: hidden;
+  }
+
+  /* Dashboard/stat cards */
+  .stat-grid {
+    width: 100%;
+    max-width: 100%;
+    grid-template-columns: 1fr !important;
+    gap: 14px;
+    box-sizing: border-box;
+  }
+
+  .stat-card {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 18px;
+  }
+
+  .stat-value {
+    font-size: 30px;
+  }
+
+  /* Two-column layouts become one column */
+  .grid-2,
+  .grid-2-even {
+    width: 100%;
+    max-width: 100%;
+    grid-template-columns: 1fr !important;
+    box-sizing: border-box;
+  }
+
+  /* Recommendation cards */
+  #res-recs,
+  #rec-container {
+    width: 100%;
+    max-width: 100%;
+    grid-template-columns: 1fr !important;
+    box-sizing: border-box;
+  }
+
+  .rec-card {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Environment / assistant cards */
+  .assistant-env-grid {
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Forms */
+  .form-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Tables never push the complete page horizontally */
+  .table-wrap,
+  .table-responsive {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    min-width: 600px;
+  }
+
+  /* Buttons fit mobile screens */
+  .btn {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Images stay inside their containers */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+
+/* ============================================================
+   SMALL PHONES
+   ============================================================ */
+
+@media (max-width: 480px) {
+
+  .page {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+
+  /* One card per row */
+  .stat-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  .stat-card {
+    border-radius: 14px;
+    padding: 16px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+  }
+
+  .stat-value {
+    font-size: 28px;
+  }
+
+  .stat-icon {
+    font-size: 18px;
+  }
+
+  /* Assistant/environment */
+  .assistant-env-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  /* Landing-page grids */
+  .feature-grid,
+  .steps-row,
+  .stats-band {
+    grid-template-columns: 1fr !important;
+  }
+
+  .content-split,
+  .hero-split {
+    grid-template-columns: 1fr !important;
+  }
+
+  .hero-split {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  /* Footer */
+  .footer-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Headings */
+  h1 {
+    font-size: clamp(28px, 9vw, 40px);
+  }
+
+  h2 {
+    font-size: 24px;
+  }
+}
